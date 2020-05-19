@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu, Tray } from 'electron'
 
 /**
  * Set `__static` path to static files in production
@@ -9,8 +9,9 @@ import { app, BrowserWindow } from 'electron'
 if (process.env.NODE_ENV !== 'development') {
   global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
 }
+const iconPath = path.join(__dirname, 'build/icons/icon.ico');
 
-let mainWindow
+let mainWindow, tray
 const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
   : `file://${__dirname}/index.html`
@@ -26,19 +27,38 @@ function createWindow () {
   })
 
   mainWindow.loadURL(winURL)
+  mainWindow.setMenuBarVisibility(false)
 
   mainWindow.on('closed', () => {
-    mainWindow = null
+    mainWindow.minimize();
+  })
+  tray = new Tray(iconPath)
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '설정',
+      click: function () {
+        mainWindow.minimize();
+      }
+    },
+    {
+      label: '종료',
+      click: function () {
+        app.quit()
+      }
+    }
+  ])
+  tray.setToolTip('트레일아이콘')
+  tray.setContextMenu(contextMenu)
+  tray.on('click', () => {
+    mainWindow.maximize();
+    mainWindow.setAlwaysOnTop(true);
+  })
+  tray.on('right-click', () => {
+    tray.popUpContextMenu();
   })
 }
 
 app.on('ready', createWindow)
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
 
 app.on('activate', () => {
   if (mainWindow === null) {
